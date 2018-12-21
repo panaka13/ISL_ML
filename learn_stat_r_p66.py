@@ -107,9 +107,42 @@ def custom(features = []):
 	print("p_value: {0}".format(p_value))
 	print(n)
 
-features = ['TV', 'radio']
-print(features)
-custom(features)
-features = ['TV', 'radio', 'newspaper']
-print(features)
-custom(features)
+def custom(features = []):
+	data = pd.read_csv('Advertising.csv')
+	data['free'] = pd.Series(np.ones(data.shape[0]))
+	y = data['sales'].tolist()
+	features.append('free')
+	x = data[features].values
+	n = len(y)
+	a = Projection.project(x, y)
+	coefficient = {}
+	for i in range(len(features)):
+		coefficient[features[i]] = a[i]
+	print(coefficient)
+	y_pred = np.dot(x, a)
+	# error term
+	rss = sf.sumOfPower([y[i]-y_pred[i] for i in range(n)], 2)
+	print("rss: {0}".format(rss))
+	rse = math.sqrt(rss/(n-len(features)))
+	std_error = {}
+	# std error of feature
+	for feature in features:
+		if feature != 'free':
+			mean = sf.mean(data[feature].values)
+			rss = sf.sumOfPower([x-mean for x in data[feature].values], 2)
+			se = rse / math.sqrt(rss)
+			std_error[feature] = se
+	print("std_error: {0}".format(std_error))
+	# t-statistic
+	t_score = {}
+	for feature in features:
+		if feature != 'free':
+			t_score[feature] = coefficient[feature] / std_error[feature]
+	print("t_score: {0}".format(t_score))
+	# p-value 
+	p_value = {}
+	for feature in features:
+		if feature != 'free':
+			p_value[feature] = (1-scipy.stats.t.cdf(abs(t_score[feature]), n-2))*2
+	print("p_value: {0}".format(p_value))
+	print(n)
